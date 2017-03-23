@@ -12,11 +12,11 @@ def install(app):
     if 'FIREBASE_URL' not in app.config or \
        'FIREBASE_SECRET' not in app.config:
         print(colored.red(
-                    '''
-                    Survey requires Parse.
-                    Please add FIREBASE_URL and FIREBASE_SECRET
-                    to rapid_response_kit/utils/config.py
-                    '''))
+'''
+        Survey requires Firebase.
+        Please add FIREBASE_URL and FIREBASE_SECRET
+        to rapid_response_kit/utils/config.py
+'''))
         return
 
     app.config.apps.register('survey', 'Survey', '/survey')
@@ -32,7 +32,8 @@ def install(app):
 
         survey = uuid.uuid4()
 
-        url = "{}/handle?survey={}".format(request.base_url, survey)
+        # url = "{}/handle?survey={}".format(request.base_url, survey)
+        url = "{}/survey/handle?survey={}".format('http://3377151d.ngrok.io', survey)
 
         client = twilio()
 
@@ -56,8 +57,8 @@ def install(app):
                 client.messages.create(
                     body=body,
                     to=number,
-                    from_=from_number.phone_number,
-                    media_url=request.form.get('media', None)
+                    from_=from_number.phone_number
+                    # media_url=request.form.get('media', None)
                 )
                 flash('Sent {} the survey'.format(number), 'success')
             except Exception:
@@ -85,12 +86,12 @@ def install(app):
 
         normalized = normalized if normalized in ['yes', 'no'] else 'N/A'
 
-        requests.post(json_url, params={'auth': app.config['FIREBASE_SECRET']}, data={
+        requests.post(json_url, {
             'raw': body,
             'normalized': normalized,
             'number': request.args['From'],
             'survey_id': request.args['survey']
-        })
+        }, params={'auth': app.config['FIREBASE_SECRET']})
 
         resp = Response()
         resp.sms('Thanks for answering our survey')

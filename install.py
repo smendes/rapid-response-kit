@@ -31,8 +31,8 @@ print
 decision = raw_input("Type 'yes' or 'no': ")
 
 if decision == 'yes':
-    parse_app_id = raw_input('Parse app ID (optional): ')
-    parse_rest_key = raw_input('Parse REST Key (optional): ')
+    parse_app_id = raw_input('Firebase app ID (optional): ')
+    parse_rest_key = raw_input('Firebase Secret Key (optional): ')
     pusher_app_id = raw_input('Pusher App ID (optional): ')
     pusher_key = raw_input('Pusher Key (optional): ')
     pusher_secret = raw_input('Pusher Secret (optional): ')
