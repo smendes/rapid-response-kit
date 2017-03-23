@@ -1,23 +1,20 @@
 import uuid
+import requests
 
-from rapid_response_kit.utils.clients import parse_connect, twilio
+from rapid_response_kit.utils.clients import twilio
 from clint.textui import colored
 from flask import render_template, request, flash, redirect
 from rapid_response_kit.utils.helpers import twilio_numbers, parse_numbers
-from parse_rest.datatypes import Object as pObject
 from twilio.twiml import Response
 
 
-class SurveyResult(pObject):
-    pass
-
-
 def install(app):
-    if not parse_connect(app.config):
+    if 'FIREBASE_URL' not in app.config or \
+       'FIREBASE_SECRET' not in app.config:
         print(colored.red(
                     '''
                     Survey requires Parse.
-                    Please add PARSE_APP_ID and PARSE_REST_KEY
+                    Please add FIREBASE_URL and FIREBASE_SECRET
                     to rapid_response_kit/utils/config.py
                     '''))
         return
@@ -70,24 +67,30 @@ def install(app):
 
     @app.route('/survey/handle')
     def handle_survey():
+        survey_id = request.args['survey']
+        phone_number = request.args['From']
         body = request.args['Body']
         normalized = body.strip().lower()
 
-        result = SurveyResult.Query.filter(number=request.args['From'],
-                                           survey_id=request.args['survey'])
+        json_url = '{firebase_url}/survey/{survey_id}/phone_number/{phone_number}.json'.format(
+            firebase_url=app.config['FIREBASE_URL'],
+            survey_id=survey_id,
+            phone_number=phone_number)
+        result = requests.get(json_url, params={'auth': app.config['FIREBASE_SECRET']}).json()
 
-        if result.count() > 0:
+        if result:
             resp = Response()
             resp.sms('Your response has been recorded')
             return str(resp)
 
         normalized = normalized if normalized in ['yes', 'no'] else 'N/A'
 
-        result = SurveyResult(raw=body, normalized=normalized,
-                              number=request.args['From'],
-                              survey_id=request.args['survey'])
-
-        result.save()
+        requests.post(json_url, params={'auth': app.config['FIREBASE_SECRET']}, data={
+            'raw': body,
+            'normalized': normalized,
+            'number': request.args['From'],
+            'survey_id': request.args['survey']
+        })
 
         resp = Response()
         resp.sms('Thanks for answering our survey')
